@@ -9,6 +9,9 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	"github.com/heythisissud/webhook-engine/internal/worker"
+	"net/http"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 // --- Package-level declarations (these CANNOT go inside a function) ---
@@ -48,5 +51,33 @@ func main() {
 	
 	// start worker in a goroutine so it doesn't block
 	go srv.Run(mux)
+
+	r:=chi.NewRouter()
+
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
+
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request){
+
+		w.Write([]byte("ok"))
+	})
+
+	// webhook routes
+	// r.Post("/webhooks", nil)      // register a webhook
+	// r.Get("/webhooks", nil)       // list all webhooks
+	// r.Get("/webhooks/{id}", nil)  // get one webhook
+	// r.Delete("/webhooks/{id}", nil) // delete a webhook
+	
+	// // event routes
+	// r.Post("/events", nil) // ingest an event
+	
+	// start server
+	http.ListenAndServe(":8080", r)
+
+
+
+	
+
+
 	_ = pool // suppress unused warning for now
 }
