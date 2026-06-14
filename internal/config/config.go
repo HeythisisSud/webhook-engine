@@ -13,7 +13,7 @@ type Config struct{
 
 func Load() Config{
 	return Config{
-		DatabaseURL: os.Getenv("DatabaseURL"),
+		DatabaseURL: os.Getenv("DATABASE_URL"),
 		RedisAddr: os.Getenv("REDIS_ADDR"),
 		Port: os.Getenv("PORT"),
 	}
