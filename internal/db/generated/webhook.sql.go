@@ -8,8 +8,7 @@ package db
 import (
 	"context"
 
-	"github.com/google/uuid"
-	"github.com/lib/pq"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createWebhook = `-- name: CreateWebhook :one
@@ -26,11 +25,11 @@ type CreateWebhookParams struct {
 }
 
 func (q *Queries) CreateWebhook(ctx context.Context, arg CreateWebhookParams) (Webhook, error) {
-	row := q.db.QueryRowContext(ctx, createWebhook,
+	row := q.db.QueryRow(ctx, createWebhook,
 		arg.ClientID,
 		arg.TargetUrl,
 		arg.Secret,
-		pq.Array(arg.EventTypes),
+		arg.EventTypes,
 	)
 	var i Webhook
 	err := row.Scan(
@@ -38,7 +37,7 @@ func (q *Queries) CreateWebhook(ctx context.Context, arg CreateWebhookParams) (W
 		&i.ClientID,
 		&i.TargetUrl,
 		&i.Secret,
-		pq.Array(&i.EventTypes),
+		&i.EventTypes,
 		&i.Enabled,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -51,8 +50,8 @@ DELETE FROM webhooks
 WHERE id=$1
 `
 
-func (q *Queries) DeleteWebhook(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, deleteWebhook, id)
+func (q *Queries) DeleteWebhook(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteWebhook, id)
 	return err
 }
 
@@ -61,15 +60,15 @@ SELECT id, client_id, target_url, secret, event_types, enabled, created_at, upda
 WHERE id=$1
 `
 
-func (q *Queries) GetWebhook(ctx context.Context, id uuid.UUID) (Webhook, error) {
-	row := q.db.QueryRowContext(ctx, getWebhook, id)
+func (q *Queries) GetWebhook(ctx context.Context, id pgtype.UUID) (Webhook, error) {
+	row := q.db.QueryRow(ctx, getWebhook, id)
 	var i Webhook
 	err := row.Scan(
 		&i.ID,
 		&i.ClientID,
 		&i.TargetUrl,
 		&i.Secret,
-		pq.Array(&i.EventTypes),
+		&i.EventTypes,
 		&i.Enabled,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -83,7 +82,7 @@ WHERE client_id= $1
 `
 
 func (q *Queries) GetWebhooksByClientID(ctx context.Context, clientID string) ([]Webhook, error) {
-	rows, err := q.db.QueryContext(ctx, getWebhooksByClientID, clientID)
+	rows, err := q.db.Query(ctx, getWebhooksByClientID, clientID)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +95,7 @@ func (q *Queries) GetWebhooksByClientID(ctx context.Context, clientID string) ([
 			&i.ClientID,
 			&i.TargetUrl,
 			&i.Secret,
-			pq.Array(&i.EventTypes),
+			&i.EventTypes,
 			&i.Enabled,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -104,9 +103,6 @@ func (q *Queries) GetWebhooksByClientID(ctx context.Context, clientID string) ([
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -120,7 +116,7 @@ WHERE $1 = ANY(event_types) AND enabled = true
 `
 
 func (q *Queries) GetWebhooksByEventType(ctx context.Context, eventTypes []string) ([]Webhook, error) {
-	rows, err := q.db.QueryContext(ctx, getWebhooksByEventType, pq.Array(eventTypes))
+	rows, err := q.db.Query(ctx, getWebhooksByEventType, eventTypes)
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +129,7 @@ func (q *Queries) GetWebhooksByEventType(ctx context.Context, eventTypes []strin
 			&i.ClientID,
 			&i.TargetUrl,
 			&i.Secret,
-			pq.Array(&i.EventTypes),
+			&i.EventTypes,
 			&i.Enabled,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -141,9 +137,6 @@ func (q *Queries) GetWebhooksByEventType(ctx context.Context, eventTypes []strin
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -159,17 +152,17 @@ RETURNING id, client_id, target_url, secret, event_types, enabled, created_at, u
 `
 
 type UpdateWebhookParams struct {
-	ID         uuid.UUID `json:"id"`
-	TargetUrl  string    `json:"target_url"`
-	EventTypes []string  `json:"event_types"`
-	Enabled    bool      `json:"enabled"`
+	ID         pgtype.UUID `json:"id"`
+	TargetUrl  string      `json:"target_url"`
+	EventTypes []string    `json:"event_types"`
+	Enabled    bool        `json:"enabled"`
 }
 
 func (q *Queries) UpdateWebhook(ctx context.Context, arg UpdateWebhookParams) (Webhook, error) {
-	row := q.db.QueryRowContext(ctx, updateWebhook,
+	row := q.db.QueryRow(ctx, updateWebhook,
 		arg.ID,
 		arg.TargetUrl,
-		pq.Array(arg.EventTypes),
+		arg.EventTypes,
 		arg.Enabled,
 	)
 	var i Webhook
@@ -178,7 +171,7 @@ func (q *Queries) UpdateWebhook(ctx context.Context, arg UpdateWebhookParams) (W
 		&i.ClientID,
 		&i.TargetUrl,
 		&i.Secret,
-		pq.Array(&i.EventTypes),
+		&i.EventTypes,
 		&i.Enabled,
 		&i.CreatedAt,
 		&i.UpdatedAt,

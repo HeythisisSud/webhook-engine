@@ -7,9 +7,8 @@ package db
 
 import (
 	"context"
-	"database/sql"
 
-	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createdDeliveryLog = `-- name: CreatedDeliveryLog :one
@@ -19,16 +18,16 @@ RETURNING id, outbox_id, attempt_number, status_code, response_body, error_messa
 `
 
 type CreatedDeliveryLogParams struct {
-	OutboxID      uuid.UUID      `json:"outbox_id"`
-	AttemptNumber int32          `json:"attempt_number"`
-	StatusCode    sql.NullInt32  `json:"status_code"`
-	ResponseBody  sql.NullString `json:"response_body"`
-	ErrorMessage  sql.NullString `json:"error_message"`
-	Success       bool           `json:"success"`
+	OutboxID      pgtype.UUID `json:"outbox_id"`
+	AttemptNumber int32       `json:"attempt_number"`
+	StatusCode    pgtype.Int4 `json:"status_code"`
+	ResponseBody  pgtype.Text `json:"response_body"`
+	ErrorMessage  pgtype.Text `json:"error_message"`
+	Success       bool        `json:"success"`
 }
 
 func (q *Queries) CreatedDeliveryLog(ctx context.Context, arg CreatedDeliveryLogParams) (DeliveryLog, error) {
-	row := q.db.QueryRowContext(ctx, createdDeliveryLog,
+	row := q.db.QueryRow(ctx, createdDeliveryLog,
 		arg.OutboxID,
 		arg.AttemptNumber,
 		arg.StatusCode,
@@ -56,8 +55,8 @@ WHERE outbox_id=$1
 ORDER BY attempt_number ASC
 `
 
-func (q *Queries) GetDeliveryLogsByOutbookId(ctx context.Context, outboxID uuid.UUID) ([]DeliveryLog, error) {
-	rows, err := q.db.QueryContext(ctx, getDeliveryLogsByOutbookId, outboxID)
+func (q *Queries) GetDeliveryLogsByOutbookId(ctx context.Context, outboxID pgtype.UUID) ([]DeliveryLog, error) {
+	rows, err := q.db.Query(ctx, getDeliveryLogsByOutbookId, outboxID)
 	if err != nil {
 		return nil, err
 	}
@@ -78,9 +77,6 @@ func (q *Queries) GetDeliveryLogsByOutbookId(ctx context.Context, outboxID uuid.
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

@@ -9,9 +9,12 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	"github.com/heythisissud/webhook-engine/internal/worker"
+	"github.com/heythisissud/webhook-engine/internal/api"
+
 	"net/http"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/heythisissud/webhook-engine/internal/db/generated"
 )
 
 // --- Package-level declarations (these CANNOT go inside a function) ---
@@ -23,22 +26,24 @@ import (
 // --- Entry point ---
 
 func main() {
+
 	godotenv.Load()
 	cfg := config.Load()
-
+	
 	pool, err := pgxpool.New(context.Background(), cfg.DatabaseURL)
 	if err != nil {
 		panic(err)
 	}
-
+	
 	err = pool.Ping(context.Background())
 	if err != nil {
 		fmt.Println("error connecting to db", err)
 		return
 	}
-
+	
 	fmt.Println("db connected")
-
+	
+	queries:=db.New(pool)
 	// create asynq server (this is the worker, reads from redis)
 	srv := asynq.NewServer(
 	    asynq.RedisClientOpt{Addr: "localhost:6379"},
@@ -61,12 +66,12 @@ func main() {
 
 		w.Write([]byte("ok"))
 	})
+	webhookHandler := api.NewWebhookHandler(queries)
 
-	// webhook routes
-	// r.Post("/webhooks", nil)      // register a webhook
-	// r.Get("/webhooks", nil)       // list all webhooks
-	// r.Get("/webhooks/{id}", nil)  // get one webhook
-	// r.Delete("/webhooks/{id}", nil) // delete a webhook
+	r.Post("/webhooks", webhookHandler.CreateWebhook)
+	r.Get("/webhooks", webhookHandler.GetWebhookByClientId)
+	r.Get("/webhooks/{id}", webhookHandler.GetWebhookById)
+	r.Delete("/webhooks/{id}", webhookHandler.DeleteWebhook)
 	
 	// // event routes
 	// r.Post("/events", nil) // ingest an event

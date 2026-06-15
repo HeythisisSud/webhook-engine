@@ -7,9 +7,8 @@ package db
 
 import (
 	"context"
-	"encoding/json"
 
-	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createEvents = `-- name: CreateEvents :one
@@ -19,13 +18,13 @@ RETURNING id, client_id, event_type, payload, created_at
 `
 
 type CreateEventsParams struct {
-	ClientID  string          `json:"client_id"`
-	EventType string          `json:"event_type"`
-	Payload   json.RawMessage `json:"payload"`
+	ClientID  string `json:"client_id"`
+	EventType string `json:"event_type"`
+	Payload   []byte `json:"payload"`
 }
 
 func (q *Queries) CreateEvents(ctx context.Context, arg CreateEventsParams) (Event, error) {
-	row := q.db.QueryRowContext(ctx, createEvents, arg.ClientID, arg.EventType, arg.Payload)
+	row := q.db.QueryRow(ctx, createEvents, arg.ClientID, arg.EventType, arg.Payload)
 	var i Event
 	err := row.Scan(
 		&i.ID,
@@ -42,8 +41,8 @@ SELECT id, client_id, event_type, payload, created_at FROM events
 WHERE id=$1
 `
 
-func (q *Queries) GetEvent(ctx context.Context, id uuid.UUID) (Event, error) {
-	row := q.db.QueryRowContext(ctx, getEvent, id)
+func (q *Queries) GetEvent(ctx context.Context, id pgtype.UUID) (Event, error) {
+	row := q.db.QueryRow(ctx, getEvent, id)
 	var i Event
 	err := row.Scan(
 		&i.ID,

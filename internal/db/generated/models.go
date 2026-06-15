@@ -5,48 +5,44 @@
 package db
 
 import (
-	"database/sql"
-	"encoding/json"
-	"time"
-
-	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type DeliveryLog struct {
-	ID            uuid.UUID      `json:"id"`
-	OutboxID      uuid.UUID      `json:"outbox_id"`
-	AttemptNumber int32          `json:"attempt_number"`
-	StatusCode    sql.NullInt32  `json:"status_code"`
-	ResponseBody  sql.NullString `json:"response_body"`
-	ErrorMessage  sql.NullString `json:"error_message"`
-	Success       bool           `json:"success"`
-	DeliveredAt   time.Time      `json:"delivered_at"`
+	ID            pgtype.UUID        `json:"id"`
+	OutboxID      pgtype.UUID        `json:"outbox_id"`
+	AttemptNumber int32              `json:"attempt_number"`
+	StatusCode    pgtype.Int4        `json:"status_code"`
+	ResponseBody  pgtype.Text        `json:"response_body"`
+	ErrorMessage  pgtype.Text        `json:"error_message"`
+	Success       bool               `json:"success"`
+	DeliveredAt   pgtype.Timestamptz `json:"delivered_at"`
 }
 
 type Event struct {
-	ID        uuid.UUID       `json:"id"`
-	ClientID  string          `json:"client_id"`
-	EventType string          `json:"event_type"`
-	Payload   json.RawMessage `json:"payload"`
-	CreatedAt time.Time       `json:"created_at"`
+	ID        pgtype.UUID        `json:"id"`
+	ClientID  string             `json:"client_id"`
+	EventType string             `json:"event_type"`
+	Payload   []byte             `json:"payload"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
 }
 
 type Outbox struct {
-	ID        uuid.UUID `json:"id"`
-	EventID   uuid.UUID `json:"event_id"`
-	WebhookID uuid.UUID `json:"webhook_id"`
-	Status    string    `json:"status"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID        pgtype.UUID        `json:"id"`
+	EventID   pgtype.UUID        `json:"event_id"`
+	WebhookID pgtype.UUID        `json:"webhook_id"`
+	Status    string             `json:"status"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
 }
 
 type Webhook struct {
-	ID         uuid.UUID `json:"id"`
-	ClientID   string    `json:"client_id"`
-	TargetUrl  string    `json:"target_url"`
-	Secret     string    `json:"secret"`
-	EventTypes []string  `json:"event_types"`
-	Enabled    bool      `json:"enabled"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
+	ID         pgtype.UUID        `json:"id"`
+	ClientID   string             `json:"client_id"`
+	TargetUrl  string             `json:"target_url"`
+	Secret     string             `json:"secret"`
+	EventTypes []string           `json:"event_types"`
+	Enabled    bool               `json:"enabled"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
 }

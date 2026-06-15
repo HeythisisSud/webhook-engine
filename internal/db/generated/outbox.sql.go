@@ -8,7 +8,7 @@ package db
 import (
 	"context"
 
-	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createOutboxEntry = `-- name: CreateOutboxEntry :one
@@ -18,12 +18,12 @@ RETURNING id, event_id, webhook_id, status, created_at, updated_at
 `
 
 type CreateOutboxEntryParams struct {
-	EventID   uuid.UUID `json:"event_id"`
-	WebhookID uuid.UUID `json:"webhook_id"`
+	EventID   pgtype.UUID `json:"event_id"`
+	WebhookID pgtype.UUID `json:"webhook_id"`
 }
 
 func (q *Queries) CreateOutboxEntry(ctx context.Context, arg CreateOutboxEntryParams) (Outbox, error) {
-	row := q.db.QueryRowContext(ctx, createOutboxEntry, arg.EventID, arg.WebhookID)
+	row := q.db.QueryRow(ctx, createOutboxEntry, arg.EventID, arg.WebhookID)
 	var i Outbox
 	err := row.Scan(
 		&i.ID,
@@ -43,7 +43,7 @@ ORDER BY created_at ASC
 `
 
 func (q *Queries) GetPendingOutboxEntries(ctx context.Context) ([]Outbox, error) {
-	rows, err := q.db.QueryContext(ctx, getPendingOutboxEntries)
+	rows, err := q.db.Query(ctx, getPendingOutboxEntries)
 	if err != nil {
 		return nil, err
 	}
@@ -63,9 +63,6 @@ func (q *Queries) GetPendingOutboxEntries(ctx context.Context) ([]Outbox, error)
 		}
 		items = append(items, i)
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -79,11 +76,11 @@ WHERE id = $1
 `
 
 type UpdateOutboxStatusParams struct {
-	ID     uuid.UUID `json:"id"`
-	Status string    `json:"status"`
+	ID     pgtype.UUID `json:"id"`
+	Status string      `json:"status"`
 }
 
 func (q *Queries) UpdateOutboxStatus(ctx context.Context, arg UpdateOutboxStatusParams) error {
-	_, err := q.db.ExecContext(ctx, updateOutboxStatus, arg.ID, arg.Status)
+	_, err := q.db.Exec(ctx, updateOutboxStatus, arg.ID, arg.Status)
 	return err
 }
