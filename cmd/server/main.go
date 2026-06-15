@@ -72,7 +72,8 @@ func main() {
 	r.Get("/webhooks", webhookHandler.GetWebhookByClientId)
 	r.Get("/webhooks/{id}", webhookHandler.GetWebhookById)
 	r.Delete("/webhooks/{id}", webhookHandler.DeleteWebhook)
-	
+	eventHandler := api.NewEventHandler(queries, pool)
+	r.Post("/events", eventHandler.IngestEvent)
 	// // event routes
 	// r.Post("/events", nil) // ingest an event
 	

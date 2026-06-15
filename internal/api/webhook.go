@@ -26,6 +26,7 @@ func (h *WebhookHandler) CreateWebhook(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		http.Error(w, "Invalid body", http.StatusBadRequest)
+		return
 
 	}
 
@@ -48,6 +49,7 @@ func (h *WebhookHandler) GetWebhookByClientId(w http.ResponseWriter, r *http.Req
 	res, err := h.queries.GetWebhooksByClientID(r.Context(), clientID)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 
 	json.NewEncoder(w).Encode(res)
@@ -64,6 +66,7 @@ func (h *WebhookHandler) GetWebhookById(w http.ResponseWriter, r *http.Request) 
 
 	if err != nil {
 		http.Error(w, "Error", http.StatusInternalServerError)
+		return
 
 	}
 
@@ -82,7 +85,7 @@ func (h *WebhookHandler) DeleteWebhook(w http.ResponseWriter, r *http.Request) {
 	err := h.queries.DeleteWebhook(r.Context(), pgtype.UUID{Bytes: parsedID, Valid: true})
 	if err != nil {
 		http.Error(w, "Error", http.StatusInternalServerError)
-
+		return
 	}
 
 	w.WriteHeader(202)
