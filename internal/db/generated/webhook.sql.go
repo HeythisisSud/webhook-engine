@@ -112,11 +112,11 @@ func (q *Queries) GetWebhooksByClientID(ctx context.Context, clientID string) ([
 
 const getWebhooksByEventType = `-- name: GetWebhooksByEventType :many
 SELECT id, client_id, target_url, secret, event_types, enabled, created_at, updated_at FROM webhooks
-WHERE $1 = ANY(event_types) AND enabled = true
+WHERE event_types && ARRAY[$1::text] AND enabled = true
 `
 
-func (q *Queries) GetWebhooksByEventType(ctx context.Context, eventTypes []string) ([]Webhook, error) {
-	rows, err := q.db.Query(ctx, getWebhooksByEventType, eventTypes)
+func (q *Queries) GetWebhooksByEventType(ctx context.Context, dollar_1 string) ([]Webhook, error) {
+	rows, err := q.db.Query(ctx, getWebhooksByEventType, dollar_1)
 	if err != nil {
 		return nil, err
 	}

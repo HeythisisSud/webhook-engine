@@ -13,7 +13,7 @@ WHERE client_id= $1;
 
 -- name: GetWebhooksByEventType :many
 SELECT * FROM webhooks
-WHERE $1 = ANY(event_types) AND enabled = true;
+WHERE event_types && ARRAY[$1::text] AND enabled = true;
 
 -- name: DeleteWebhook :exec
 DELETE FROM webhooks

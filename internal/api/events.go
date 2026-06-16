@@ -52,7 +52,7 @@ func (h *EventHandler) IngestEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	webhooks, err := qtx.GetWebhooksByEventType(ctx, []string{req.EventType})
+	webhooks, err := qtx.GetWebhooksByEventType(ctx, req.EventType)
 	if err != nil {
 		http.Error(w, "Error fetching webhooks", http.StatusInternalServerError)
 		return

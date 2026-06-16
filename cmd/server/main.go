@@ -15,6 +15,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/heythisissud/webhook-engine/internal/db/generated"
+	"github.com/heythisissud/webhook-engine/internal/poller"
+
 )
 
 // --- Package-level declarations (these CANNOT go inside a function) ---
@@ -56,6 +58,10 @@ func main() {
 	
 	// start worker in a goroutine so it doesn't block
 	go srv.Run(mux)
+	asynqClient := asynq.NewClient(asynq.RedisClientOpt{Addr: "localhost:6379"})
+
+	p := poller.NewPoller(queries, asynqClient )
+	go p.Start(context.Background())
 
 	r:=chi.NewRouter()
 
