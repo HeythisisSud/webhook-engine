@@ -3,6 +3,7 @@ package poller
 import (
 	"context"
 	"time"
+    "log"
 
 	"github.com/heythisissud/webhook-engine/internal/db/generated"
 	"github.com/heythisissud/webhook-engine/internal/worker"
@@ -51,7 +52,12 @@ func (p *Poller) Start(ctx context.Context) {
                 }
 
 
-                p.asynqClient.Enqueue(task)
+                info,err:=p.asynqClient.Enqueue(task)
+                if err != nil {
+                    log.Println("error enqueuing task:", err)
+                    continue
+                }
+                log.Println("enqueued task:",info.ID)
 
                 // update status to enqueued
                 p.queries.UpdateOutboxStatus(ctx, db.UpdateOutboxStatusParams{

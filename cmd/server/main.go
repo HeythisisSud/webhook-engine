@@ -54,7 +54,8 @@ func main() {
 	
 	// register which function handles which task type
 	mux := asynq.NewServeMux()
-	mux.HandleFunc(worker.TypeWebhookDelivery, worker.HandleWebhookDelivery)
+	w:=worker.NewWorkerQuery(queries)
+	mux.HandleFunc(worker.TypeWebhookDelivery, w.HandleWebhookDelivery)
 	
 	// start worker in a goroutine so it doesn't block
 	go srv.Run(mux)
