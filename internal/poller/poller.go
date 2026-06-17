@@ -8,6 +8,7 @@ import (
 	"github.com/heythisissud/webhook-engine/internal/db/generated"
 	"github.com/heythisissud/webhook-engine/internal/worker"
 	"github.com/hibiken/asynq"
+
 )
 type Poller struct {
     queries     *db.Queries
@@ -44,7 +45,7 @@ func (p *Poller) Start(ctx context.Context) {
                     continue
                 }
 
-                task, errr:=worker.NewWebhookDeliveryTask(entries.ID.String(),webhook.TargetUrl,event.Payload)
+                task, errr:=worker.NewWebhookDeliveryTask(entries.ID.String(),webhook.TargetUrl,event.Payload,webhook.Secret)
                 
                 if errr!=nil{
                     continue

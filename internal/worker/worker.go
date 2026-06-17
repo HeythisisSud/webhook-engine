@@ -14,6 +14,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
 	"github.com/jackc/pgx/v5/pgtype"
+	"crypto/hmac"
+    "crypto/sha256"
+    "encoding/hex"
 )
 
 const (
@@ -24,6 +27,8 @@ type WebhookDeliveryPayload struct {
 	OutboxId   string `json:"outbox_id"`
 	WebhookUrl string `json:"webhook_url"`
 	Payload    []byte `json:"payload"`
+    Secret     string `json:"secret"`
+
 }
 
 type WorkerQuery struct {
@@ -36,11 +41,12 @@ func NewWorkerQuery(query *db.Queries) *WorkerQuery {
 	}
 }
 
-func NewWebhookDeliveryTask(OutboxId string, WebhookUrl string, Payload []byte) (*asynq.Task, error) {
+func NewWebhookDeliveryTask(OutboxId string, WebhookUrl string, Payload []byte,Secret string) (*asynq.Task, error) {
 	payload, err := json.Marshal(WebhookDeliveryPayload{
 		OutboxId:   OutboxId,
 		WebhookUrl: WebhookUrl,
 		Payload:    Payload,
+		Secret: Secret,
 	})
 
 	if err != nil {
@@ -50,6 +56,12 @@ func NewWebhookDeliveryTask(OutboxId string, WebhookUrl string, Payload []byte) 
 	return asynq.NewTask(TypeWebhookDelivery, payload), nil
 }
 
+func signPayload(payload []byte, secret string) string {
+    mac := hmac.New(sha256.New, []byte(secret))
+    mac.Write(payload)
+    return "sha256=" + hex.EncodeToString(mac.Sum(nil))
+}
+
 func (w *WorkerQuery) HandleWebhookDelivery(ctx context.Context, t *asynq.Task) error {
 	var p WebhookDeliveryPayload
 	if err := json.Unmarshal(t.Payload(), &p); err != nil {
@@ -57,10 +69,25 @@ func (w *WorkerQuery) HandleWebhookDelivery(ctx context.Context, t *asynq.Task) 
 
 	}
 	// 2. make the HTTP POST to the target URL
-	resp, err := http.Post(p.WebhookUrl, "application/json", bytes.NewBuffer(p.Payload))
+	// sign the payload
+	signature := signPayload(p.Payload, p.Secret)
+	
+	// create request manually
+	req, err := http.NewRequest("POST", p.WebhookUrl, bytes.NewBuffer(p.Payload))
 	if err != nil {
-		log.Println("delivery error:", err)
-		return fmt.Errorf("http delivery failed: %v", err)
+	    return fmt.Errorf("failed to create request: %v", err)
+	}
+	
+	// set headers
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Webhook-Signature", signature)
+	
+	// send it
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+	    log.Println("delivery error:", err)
+	    return fmt.Errorf("http delivery failed: %v", err)
 	}
 	defer resp.Body.Close()
 	log.Println("delivery response status:", resp.StatusCode)
